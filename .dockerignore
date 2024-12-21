@@ -1,0 +1,10 @@
+videoseal/.git/
+videoseal/.github/
+videoseal/outputs/
+videoseal/.gitignore
+videoseal/.pre-commit-config.yaml
+
+# Ignore generated files
+**/*.pyc
+
+**/.DS_Store
