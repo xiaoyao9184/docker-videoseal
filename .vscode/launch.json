@@ -1,0 +1,65 @@
+{
+    "version": "0.2.0",
+    "configurations": [
+        {
+            "name": "debugpy: video-seal inference_av detect",
+            "type": "debugpy",
+            "request": "launch",
+            "program": "inference_av.py",
+            "console": "integratedTerminal",
+            "cwd": "${workspaceFolder}/videoseal",
+            "args": [
+                "--input_file", "outputs/1.watermarked.mp4",
+                // "--video_only", // bug
+                "--detect"
+            ],
+            "env": {
+                // "HF_ENDPOINT": "https://hf-mirror.com",
+                // "HF_HUB_ETAG_TIMEOUT": "1000",
+                // "HF_HUB_DOWNLOAD_TIMEOUT": "1000",
+                "XDG_CACHE_HOME": "${workspaceFolder}/cache"
+            },
+            "justMyCode": false
+        },
+        {
+            "name": "debugpy: video-seal inference_av watermark",
+            "type": "debugpy",
+            "request": "launch",
+            "program": "inference_av.py",
+            "console": "integratedTerminal",
+            "cwd": "${workspaceFolder}/videoseal",
+            "args": [
+                "--input_file", "assets/videos/1.mp4",
+                "--output_file", "outputs/1.watermarked.mp4",
+                // "--video_only", // bug
+            ],
+            "env": {
+                // "HF_ENDPOINT": "https://hf-mirror.com",
+                // "HF_HUB_ETAG_TIMEOUT": "1000",
+                // "HF_HUB_DOWNLOAD_TIMEOUT": "1000",
+                "XDG_CACHE_HOME": "${workspaceFolder}/cache"
+            },
+            "justMyCode": false
+        },
+        {
+            "name": "debugpy: video-seal inference_streaming",
+            "type": "debugpy",
+            "request": "launch",
+            "program": "inference_streaming.py",
+            "console": "integratedTerminal",
+            "cwd": "${workspaceFolder}/videoseal",
+            "args": [
+                "--input", "assets/videos/1.mp4",
+                "--output_dir", "outputs/",
+                "--do_audio", "true" // Not implemented
+            ],
+            "env": {
+                // "HF_ENDPOINT": "https://hf-mirror.com",
+                // "HF_HUB_ETAG_TIMEOUT": "1000",
+                // "HF_HUB_DOWNLOAD_TIMEOUT": "1000",
+                "XDG_CACHE_HOME": "${workspaceFolder}/cache"
+            },
+            "justMyCode": false
+        },
+    ]
+}
