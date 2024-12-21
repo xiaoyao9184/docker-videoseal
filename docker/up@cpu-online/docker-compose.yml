@@ -1,0 +1,10 @@
+
+
+services:
+  video-seal:
+    image: xiaoyao9184/video-seal:main
+    container_name: video-seal-nb
+    ports:
+      - "8888:8888"
+    volumes:
+      - ./../../cache:/root/.cache
