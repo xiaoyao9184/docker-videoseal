@@ -1,0 +1,20 @@
+name: video_seal
+channels:
+  - conda-forge
+  - pytorch
+  - nvidia
+dependencies:
+  - python=3.10.14
+
+  - pytorch==2.5.1
+  - pytorch-cuda==12.4
+  - torchvision==0.20.1
+  - torchaudio==2.5.1
+
+  # - pywget==3.2
+  - ffmpeg==7.1.0
+
+  - pip:
+    - jupyter==1.1.1
+    - audioseal==0.1.4
+    - -r ./videoseal/requirements.txt
