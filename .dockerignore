@@ -4,6 +4,8 @@ videoseal/outputs/
 videoseal/.gitignore
 videoseal/.pre-commit-config.yaml
 
+gradio/requirements.txt
+
 # Ignore generated files
 **/*.pyc
 
