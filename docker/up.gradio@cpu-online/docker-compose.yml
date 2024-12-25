@@ -1,0 +1,12 @@
+
+
+services:
+  video-seal:
+    image: xiaoyao9184/video-seal:main
+    container_name: video-seal-gradio
+    working_dir: /workspace/gradio
+    command: gradio gradio_app.py
+    ports:
+      - "7860:7860"
+    volumes:
+      - ./../../cache:/root/.cache
