@@ -2,6 +2,23 @@
     "version": "0.2.0",
     "configurations": [
         {
+            "name": "debugpy: gradio offline",
+            "type": "debugpy",
+            "request": "launch",
+            "program": "${workspaceFolder}/gradio/gradio_run.py",
+            "console": "integratedTerminal",
+            "cwd": "${workspaceFolder}",
+            "args": [
+                "${workspaceFolder}/gradio/gradio_app.py"
+            ],
+            "env": {
+                "APP_PATH": "${workspaceFolder}/videoseal",
+                "PYDEVD_DISABLE_FILE_VALIDATION": "1",
+                "XDG_CACHE_HOME": "${workspaceFolder}/cache",
+            },
+            "justMyCode": false
+        },
+        {
             "name": "debugpy: video-seal inference_av detect",
             "type": "debugpy",
             "request": "launch",
