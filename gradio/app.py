@@ -20,7 +20,8 @@ def install_src():
     requirements_path = os.path.join(LOCAL_PATH, "requirements.txt")
     if os.path.exists(requirements_path):
         print("Installing requirements...")
-        subprocess.check_call(["pip", "install", "-r", requirements_path])
+        # Lock versions by attaching a custom requirements.txt.
+        subprocess.check_call(["pip", "install", "-r", "./requirements.txt", "-r", requirements_path])
     else:
         print("No requirements.txt found.")
 
