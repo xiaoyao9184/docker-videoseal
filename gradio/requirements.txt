@@ -6,3 +6,5 @@ audioseal==0.1.4
 matplotlib==3.10.0
 soundfile==0.12.1
 torchaudio==2.5.1
+# see https://github.com/gradio-app/gradio/issues/10649
+pydantic==2.10.6
