@@ -597,7 +597,8 @@ with gr.Blocks(title="VideoSeal") as demo:
             embedding_only_vid.change(
                 fn=change_embedding_type,
                 inputs=[embedding_only_vid],
-                outputs=[embedding_msg_a]
+                outputs=[embedding_msg_a],
+                api_name=False
             )
 
             def change_embedding_type(type):
@@ -610,7 +611,8 @@ with gr.Blocks(title="VideoSeal") as demo:
             embedding_type.change(
                 fn=change_embedding_type,
                 inputs=[embedding_type],
-                outputs=[embedding_msg_v, embedding_msg_a]
+                outputs=[embedding_msg_v, embedding_msg_a],
+                api_name=False
             )
 
             def check_embedding_msg(msg_v, msg_a):
@@ -625,12 +627,14 @@ with gr.Blocks(title="VideoSeal") as demo:
             embedding_msg_v.change(
                 fn=check_embedding_msg,
                 inputs=[embedding_msg_v, embedding_msg_a],
-                outputs=[]
+                outputs=[],
+                api_name=False
             )
             embedding_msg_a.change(
                 fn=check_embedding_msg,
                 inputs=[embedding_msg_v, embedding_msg_a],
-                outputs=[]
+                outputs=[],
+                api_name=False
             )
 
             def run_embed_watermark(input_path, video_only, msg_v, msg_a, progress=gr.Progress(track_tqdm=True)):
