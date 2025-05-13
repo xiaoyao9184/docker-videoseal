@@ -50,7 +50,8 @@
                 }
             },
             "command": [
-                "huggingface-cli download --revision main --cache-dir ./cache/huggingface/hub facebook/video_seal checkpoint.pth",
+                // facebook/video_sea is same as rgb_96b.pth
+                // "huggingface-cli download --revision main --cache-dir ./cache/huggingface/hub facebook/video_seal checkpoint.pth",
                 // for inference_av.py
                 "&& huggingface-cli download --revision main --cache-dir ./cache/huggingface/hub facebook/audioseal generator_base.pth",
                 "&& huggingface-cli download --revision main --cache-dir ./cache/huggingface/hub facebook/audioseal detector_base.pth",
@@ -74,7 +75,7 @@
             "problemMatcher": []
         },
         {
-            "label": "conda: jupyter run demo notebook",
+            "label": "conda: jupyter run video_inference notebook",
             "type": "shell",
             "options": {
                 "cwd": "${workspaceFolder}/videoseal",
@@ -86,21 +87,22 @@
                 }
             },
             "command": [
-                "conda run --no-capture-output -n video_seal jupyter notebook ./notebooks/demo.ipynb"
+                "conda run --no-capture-output -n video_seal jupyter notebook ./notebooks/video_inference.ipynb"
             ],
             "problemMatcher": []
         },
-        // no need
-        // {
-        //     "label": "conda: wget download model checkpoint",
-        //     "type": "shell",
-        //     "options": {
-        //         "cwd": "${workspaceFolder}/videoseal"
-        //     },
-        //     "command": [
-        //         "conda run --no-capture-output -n video_seal python -m wget https://dl.fbaipublicfiles.com/videoseal/checkpoint.pth -o ./checkpoint.pth",
-        //     ]
-        // },
+        {
+            "label": "conda: wget download model checkpoint",
+            "type": "shell",
+            "options": {
+                "cwd": "${workspaceFolder}/videoseal"
+            },
+            "command": [
+                "mkdir -p ./ckpts",
+                "&& conda run --no-capture-output -n video_seal python -m wget https://dl.fbaipublicfiles.com/videoseal/y_256b_img.pth -o ./ckpts/y_256b_img.pth",
+                "&& conda run --no-capture-output -n video_seal python -m wget https://dl.fbaipublicfiles.com/videoseal/rgb_96b.pth -o ./ckpts/rgb_96b.pth"
+            ]
+        },
         {
             "label": "conda: create env",
             "type": "shell",

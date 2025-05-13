@@ -26,8 +26,8 @@
             "console": "integratedTerminal",
             "cwd": "${workspaceFolder}/videoseal",
             "args": [
-                "--input_file", "outputs/1.watermarked.mp4",
-                // "--video_only", // bug
+                "--input", "outputs/1.mp4",
+                "--video_only",
                 "--detect"
             ],
             "env": {
@@ -39,16 +39,16 @@
             "justMyCode": false
         },
         {
-            "name": "debugpy: video-seal inference_av watermark",
+            "name": "debugpy: video-seal inference_av embed",
             "type": "debugpy",
             "request": "launch",
             "program": "inference_av.py",
             "console": "integratedTerminal",
             "cwd": "${workspaceFolder}/videoseal",
             "args": [
-                "--input_file", "assets/videos/1.mp4",
-                "--output_file", "outputs/1.watermarked.mp4",
-                // "--video_only", // bug
+                "--input", "assets/videos/1.mp4",
+                "--output_dir", "outputs/",
+                "--video_only"
             ],
             "env": {
                 // "HF_ENDPOINT": "https://hf-mirror.com",
