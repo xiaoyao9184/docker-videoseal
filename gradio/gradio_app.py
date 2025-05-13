@@ -28,14 +28,22 @@ import videoseal
 from videoseal.utils.display import save_video_audio_to_mp4
 
 # Load video_model if not already loaded in reload mode
-if 'video_model' not in globals():
+if 'video_models' not in globals():
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
-    # Load the VideoSeal model
-    video_model = videoseal.load("videoseal")
+    video_models = {}
+
+    # Load the VideoSeal model 1.0
+    video_model = videoseal.load("videoseal_1.0")
     video_model.eval()
     video_model.to(device)
-    video_model_nbytes = int(video_model.embedder.msg_processor.nbits / 8)
+    video_models['1.0'] = video_model
+
+    # Load the VideoSeal model 0.0
+    video_model = videoseal.load("videoseal_0.0")
+    video_model.eval()
+    video_model.to(device)
+    video_models['0.0'] = video_model
 
 # Load the AudioSeal model
 # Load audio_generator if not already loaded in reload mode
@@ -48,6 +56,10 @@ if 'audio_generator' not in globals():
 if 'audio_detector' not in globals():
     audio_detector = AudioSeal.load_detector("audioseal_detector_16bits")
     audio_detector = audio_detector.to(device)
+
+def get_model_nbytes(model_version):
+    video_model = video_models[model_version]
+    return int(video_model.embedder.msg_processor.nbits / 8)
 
 def generate_msg_pt_by_format_string(format_string, bytes_count):
     msg_hex = format_string.replace("-", "")
@@ -345,8 +357,9 @@ def embed_audio(
     # print(stderr_output2)
     return
 
-def embed_watermark(input_path, output_path, msg_v, msg_a, video_only, progress):
+def embed_watermark(input_path, model_version, output_path, msg_v, msg_a, video_only, progress):
     output_path_video = output_path + ".video.mp4"
+    video_model = video_models[model_version]
     embed_video(video_model, input_path, output_path_video, msg_v, 16)
 
     output_path_audio = output_path + ".audio.m4a"
@@ -378,6 +391,7 @@ def detect_video_clip(
 
 def detect_video(
     model,
+    version: str,
     input_path: str,
     chunk_size: int
 ) -> None:
@@ -402,7 +416,7 @@ def detect_video(
     chunk = np.zeros((chunk_size, height, width, 3), dtype=np.uint8)
     frame_count = 0
     soft_msgs = []
-    pbar = tqdm.tqdm(total=num_frames, unit='frame', desc="Watermark video detecting")
+    pbar = tqdm.tqdm(total=num_frames, unit='frame', desc=f"{version}: Watermark video detecting")
     while True:
         in_bytes = process1.stdout.read(frame_size)
         if not in_bytes:
@@ -521,16 +535,25 @@ def detect_audio(
     soft_message_prob = torch.cat(soft_message_prob, dim=0)
     return (soft_result, soft_message, soft_pred_prob, soft_message_prob)
 
-def detect_watermark(input_path, video_only):
-    msgs_v_frame = detect_video(video_model, input_path, 16)
-    msgs_v_avg = msgs_v_frame.mean(dim=0)  # Average the predictions across all frames
-    msgs_v_frame = (msgs_v_frame > 0).to(int)
-    msgs_v_avg = (msgs_v_avg > 0).to(int)
-    msgs_v_unique, msgs_v_counts = torch.unique(msgs_v_frame, dim=0, return_counts=True)
-    msgs_v_most = None
-    if len(msgs_v_frame) > len(msgs_v_counts) > 0:
-        msgs_v_most_idx = torch.argmax(msgs_v_counts)
-        msgs_v_most = msgs_v_unique[msgs_v_most_idx]    
+def detect_watermark(input_path, version_keys, video_only):
+    msgs_v_most = {}
+    msgs_v_avg = {}
+    msgs_v_frame = {}
+    for video_version, video_model in video_models.items():
+        if video_version not in version_keys:
+            continue
+        version_msgs_v_frame = detect_video(video_model, video_version, input_path, 16)
+        version_msgs_v_frame = (version_msgs_v_frame > 0).to(int)
+        version_msgs_v_avg = (version_msgs_v_frame.to(torch.float32).mean(dim=0) > 0).to(int)
+        version_msgs_v_most = None
+        version_msgs_v_unique, version_msgs_v_counts = torch.unique(version_msgs_v_frame, dim=0, return_counts=True)
+        if len(version_msgs_v_frame) > len(version_msgs_v_counts) > 0:
+            version_msgs_v_most_idx = torch.argmax(version_msgs_v_counts)
+            version_msgs_v_most = version_msgs_v_unique[version_msgs_v_most_idx]    
+
+        msgs_v_most[video_version] = version_msgs_v_most
+        msgs_v_avg[video_version] = version_msgs_v_avg
+        msgs_v_frame[video_version] = version_msgs_v_frame
 
     msgs_a_most = msgs_a_res = msgs_a_frame = msgs_a_pred = msgs_a_prob = None
     if not video_only:
@@ -570,7 +593,8 @@ with gr.Blocks(title="VideoSeal") as demo:
                         with gr.Column():
                             embedding_type = gr.Radio(["random", "input"], value="random", label="Type", info="Type of watermarks")
 
-                            format_like_v, regex_pattern_v = generate_hex_format_regex(video_model_nbytes)
+                            video_model_nbytes = get_model_nbytes(list(video_models.keys())[0])
+                            format_like_v, _ = generate_hex_format_regex(video_model_nbytes)
                             msg_v, _ = generate_hex_random_message(video_model_nbytes)
                             embedding_msg_v = gr.Textbox(
                                 label=f"Message ({video_model_nbytes} bytes hex string)",
@@ -578,44 +602,64 @@ with gr.Blocks(title="VideoSeal") as demo:
                                 value=msg_v,
                                 interactive=False, show_copy_button=True)
                         with gr.Column():
-                            embedding_only_vid = gr.Checkbox(label="Only Video", value=False)
+                            embedding_version = gr.Dropdown(video_models.keys(), label="Model version", interactive=True)
+                            with gr.Column():
+                                embedding_only_vid = gr.Checkbox(label="Only Video", value=False)
 
-                            format_like_a, regex_pattern_a = generate_hex_format_regex(audio_generator_nbytes)
-                            msg_a, _ = generate_hex_random_message(audio_generator_nbytes)
-                            embedding_msg_a = gr.Textbox(
-                                label=f"Audio Message ({audio_generator_nbytes} bytes hex string)",
-                                info=f"format like {format_like_a}",
-                                value=msg_a,
-                                interactive=False, show_copy_button=True)
-
+                                format_like_a, _ = generate_hex_format_regex(audio_generator_nbytes)
+                                msg_a, _ = generate_hex_random_message(audio_generator_nbytes)
+                                embedding_msg_a = gr.Textbox(
+                                    label=f"Audio Message ({audio_generator_nbytes} bytes hex string)",
+                                    info=f"format like {format_like_a}",
+                                    value=msg_a,
+                                    interactive=False, show_copy_button=True)
                     embedding_btn = gr.Button("Embed Watermark")
                 with gr.Column():
                     marked_vid = gr.Video(label="Output Audio", show_download_button=True)
 
-            def change_embedding_type(video_only):
+            def change_embedding_silent(video_only):
                 return gr.update(visible=not video_only)
             embedding_only_vid.change(
-                fn=change_embedding_type,
+                fn=change_embedding_silent,
                 inputs=[embedding_only_vid],
                 outputs=[embedding_msg_a],
                 api_name=False
             )
 
-            def change_embedding_type(type):
+            def change_embedding_version(version):
+                video_model_nbytes = get_model_nbytes(version)
+                format_like_v, _ = generate_hex_format_regex(video_model_nbytes)
+                msg_v, _ = generate_hex_random_message(video_model_nbytes)
+                return gr.update(
+                    label=f"Message ({video_model_nbytes} bytes hex string)",
+                    info=f"format like {format_like_v}",
+                    value=msg_v)
+            embedding_version.change(
+                fn=change_embedding_version,
+                inputs=[embedding_version],
+                outputs=[embedding_msg_v],
+                api_name=False
+            )
+
+            def change_embedding_type(type, version):
                 if type == "random":
+                    video_model_nbytes = get_model_nbytes(version)
                     msg_v, _ = generate_hex_random_message(video_model_nbytes)
-                    msg_a,_ = generate_hex_random_message(audio_generator_nbytes)
+                    msg_a, _ = generate_hex_random_message(audio_generator_nbytes)
                     return [gr.update(interactive=False, value=msg_v),gr.update(interactive=False, value=msg_a)]
                 else:
                     return [gr.update(interactive=True),gr.update(interactive=True)]
             embedding_type.change(
                 fn=change_embedding_type,
-                inputs=[embedding_type],
+                inputs=[embedding_type, embedding_version],
                 outputs=[embedding_msg_v, embedding_msg_a],
                 api_name=False
             )
 
-            def check_embedding_msg(msg_v, msg_a):
+            def check_embedding_msg(version_v, msg_v, msg_a):
+                video_model_nbytes = get_model_nbytes(version_v)
+                _, regex_pattern_v = generate_hex_format_regex(video_model_nbytes)
+                _, regex_pattern_a = generate_hex_format_regex(audio_generator_nbytes)
                 if not re.match(regex_pattern_v, msg_v):
                     gr.Warning(
                         f"Invalid format. Please use like '{format_like_v}'",
@@ -626,7 +670,7 @@ with gr.Blocks(title="VideoSeal") as demo:
                         duration=0)
             embedding_msg_v.change(
                 fn=check_embedding_msg,
-                inputs=[embedding_msg_v, embedding_msg_a],
+                inputs=[embedding_version, embedding_msg_v, embedding_msg_a],
                 outputs=[],
                 api_name=False
             )
@@ -637,7 +681,10 @@ with gr.Blocks(title="VideoSeal") as demo:
                 api_name=False
             )
 
-            def run_embed_watermark(input_path, video_only, msg_v, msg_a, progress=gr.Progress(track_tqdm=True)):
+            def run_embed_watermark(input_path, model_version, video_only, msg_v, msg_a, progress=gr.Progress(track_tqdm=True)):
+                video_model_nbytes = get_model_nbytes(model_version)
+                _, regex_pattern_v = generate_hex_format_regex(video_model_nbytes)
+                _, regex_pattern_a = generate_hex_format_regex(audio_generator_nbytes)
                 if input_path is None:
                     raise gr.Error("No file uploaded", duration=5)
                 if not re.match(regex_pattern_v, msg_v):
@@ -652,12 +699,12 @@ with gr.Blocks(title="VideoSeal") as demo:
                     output_path = os.path.join(os.path.dirname(input_path), "__".join([msg_v]) + '.mp4')
                 else:
                     output_path = os.path.join(os.path.dirname(input_path), "__".join([msg_v, msg_a]) + '.mp4')
-                embed_watermark(input_path, output_path, msg_pt_v, msg_pt_a, video_only, progress)
+                embed_watermark(input_path, model_version, output_path, msg_pt_v, msg_pt_a, video_only, progress)
 
                 return output_path
             embedding_btn.click(
                 fn=run_embed_watermark,
-                inputs=[embedding_vid, embedding_only_vid, embedding_msg_v, embedding_msg_a],
+                inputs=[embedding_vid, embedding_version, embedding_only_vid, embedding_msg_v, embedding_msg_a],
                 outputs=[marked_vid]
             )
 
@@ -665,28 +712,36 @@ with gr.Blocks(title="VideoSeal") as demo:
             with gr.Row():
                 with gr.Column():
                     detecting_vid = gr.Video(label="Input Video")
-                    detecting_only_vid = gr.Checkbox(label="Only Video", value=False)
+                    with gr.Row():
+                        detecting_model_dd = gr.Dropdown(video_models.keys(), value=list(video_models.keys()), multiselect=True, label="Model version", interactive=True)
+                        detecting_only_vid = gr.Checkbox(label="Only Video", value=False)
                     detecting_btn = gr.Button("Detect Watermark")
                 with gr.Column():
                     predicted_messages = gr.JSON(label="Detected Messages")
 
-            def run_detect_watermark(file, video_only, progress=gr.Progress(track_tqdm=True)):
+            def run_detect_watermark(file, model_versions, video_only, progress=gr.Progress(track_tqdm=True)):
                 if file is None:
                     raise gr.Error("No file uploaded", duration=5)
 
-                msgs_v_most, msgs_v_avg, msgs_v_frame, msgs_a_most, msgs_a_res, msgs_a_frame, msgs_a_pred, msgs_a_prob = detect_watermark(file, video_only)
+                msgs_v_most, msgs_v_avg, msgs_v_frame, msgs_a_most, msgs_a_res, msgs_a_frame, msgs_a_pred, msgs_a_prob = detect_watermark(file, model_versions, video_only)
 
-                _, format_msg_v_most = generate_format_string_by_msg_pt(msgs_v_most, video_model_nbytes)
-                _, format_msg_v_avg = generate_format_string_by_msg_pt(msgs_v_avg, video_model_nbytes)
-                format_msg_v_frames = {}
-                for idx, msg in enumerate(msgs_v_frame):
-                    _, format_msg = generate_format_string_by_msg_pt(msg, video_model_nbytes)
-                    format_msg_v_frames[f"{idx}"] = format_msg
-                video_json = {
-                    "most": format_msg_v_most,
-                    "avg": format_msg_v_avg,
-                    "frames": format_msg_v_frames
-                }
+                video_json = {}
+                for (version_name, version_msgs_v_most), (_, version_msgs_v_avg), (_, version_msgs_v_frame) in zip(msgs_v_most.items(), msgs_v_avg.items(), msgs_v_frame.items()):
+                    if version_name not in model_versions:
+                        continue
+
+                    video_model_nbytes = get_model_nbytes(version_name)
+                    _, format_msg_v_most = generate_format_string_by_msg_pt(version_msgs_v_most, video_model_nbytes)
+                    _, format_msg_v_avg = generate_format_string_by_msg_pt(version_msgs_v_avg, video_model_nbytes)
+                    format_msg_v_frames = {}
+                    for idx, msg in enumerate(version_msgs_v_frame):
+                        _, format_msg = generate_format_string_by_msg_pt(msg, video_model_nbytes)
+                        format_msg_v_frames[f"{idx}"] = format_msg
+                    video_json[version_name] = {
+                        "most": format_msg_v_most,
+                        "avg": format_msg_v_avg,
+                        "frames": format_msg_v_frames
+                    }
 
                 if msgs_a_res is None:
                     audio_json = None
@@ -718,7 +773,7 @@ with gr.Blocks(title="VideoSeal") as demo:
                 return message_json
             detecting_btn.click(
                 fn=run_detect_watermark,
-                inputs=[detecting_vid, detecting_only_vid],
+                inputs=[detecting_vid, detecting_model_dd, detecting_only_vid],
                 outputs=[predicted_messages]
             )
 
