@@ -52,10 +52,11 @@
             "command": [
                 "huggingface-cli download --revision main --cache-dir ./cache/huggingface/hub facebook/video_seal checkpoint.pth",
                 // for inference_av.py
-                "&& huggingface-cli download --revision main --cache-dir ./cache/huggingface/hub facebook/videoseal generator_base.pth",
-                "&& huggingface-cli download --revision main --cache-dir ./cache/huggingface/hub facebook/videoseal detector_base.pth",
-                "&& cp ./cache/huggingface/hub/models--facebook--videoseal/snapshots/199c1793b46a37b682fb3367b8b2dcb443de9d72/generator_base.pth  ./cache/videoseal/0f195d476dd87ca1bd7b09e6",
-                "&& cp ./cache/huggingface/hub/models--facebook--videoseal/snapshots/199c1793b46a37b682fb3367b8b2dcb443de9d72/detector_base.pth  ./cache/videoseal/94c8df0b1d5ea8e45af4c884",
+                "&& huggingface-cli download --revision main --cache-dir ./cache/huggingface/hub facebook/audioseal generator_base.pth",
+                "&& huggingface-cli download --revision main --cache-dir ./cache/huggingface/hub facebook/audioseal detector_base.pth",
+                "&& mkdir -p ./cache/audioseal",
+                "&& cp ./cache/huggingface/hub/models--facebook--audioseal/snapshots/ebf1dd76cd9b33a55585d80f6f33ae4d82ef83d0/generator_base.pth  ./cache/audioseal/0f195d476dd87ca1bd7b09e6",
+                "&& cp ./cache/huggingface/hub/models--facebook--audioseal/snapshots/ebf1dd76cd9b33a55585d80f6f33ae4d82ef83d0/detector_base.pth  ./cache/audioseal/94c8df0b1d5ea8e45af4c884",
             ]
         },
         {
