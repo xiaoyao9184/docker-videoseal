@@ -17,8 +17,8 @@ RUN pip3 install --upgrade pip
 
 RUN pip3 install --no-cache-dir \
     jupyter==1.1.1 \
-    pydantic==2.10.5 \
-    gradio==5.8.0 \
+    pydantic==2.11.4 \
+    gradio[mcp]==5.28.0 \
     matplotlib==3.10.0 \
     audioseal==0.1.4
 

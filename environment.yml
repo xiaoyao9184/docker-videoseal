@@ -18,8 +18,9 @@ dependencies:
     - torch==2.5.1
     - jupyter==1.1.1
     - matplotlib==3.10.0
-    - gradio==5.8.0
-    - pydantic==2.10.5
+    - gradio[mcp]==5.28.0
+    # gradio[mcp] 5.28.0 depends on pydantic>=2.11
+    - pydantic==2.11.4
     - audioseal==0.1.4
     - torchvision==0.20.1 --index-url https://download.pytorch.org/whl/cu124
     - -r ./videoseal/requirements.txt

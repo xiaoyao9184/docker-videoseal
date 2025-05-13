@@ -572,7 +572,7 @@ def detect_watermark(input_path, version_keys, video_only):
 with gr.Blocks(title="VideoSeal") as demo:
     gr.Markdown("""
     # VideoSeal Demo
-
+    ![](https://badge.mcpx.dev?type=server 'MCP Server')
     For video, each frame will be watermarked and detected.
     For audio, each 3 seconds will be watermarked, and each second will be detected.
 
@@ -681,11 +681,25 @@ with gr.Blocks(title="VideoSeal") as demo:
                 api_name=False
             )
 
-            def run_embed_watermark(input_path, model_version, video_only, msg_v, msg_a, progress=gr.Progress(track_tqdm=True)):
+            def run_embed_watermark(file, model_version, video_only, msg_v, msg_a, progress=gr.Progress(track_tqdm=True)):
+                """
+                Embeds a watermark into the given video file using the specified model.
+
+                Args:
+                    file (str): Path to the input video file.
+                    model_version (str): Identifier for the video model version or checkpoint used for embedding.
+                    video_only (bool): If True, embeds watermark only in the video stream; audio is ignored.
+                    msg_v (str): A 12- or 32-byte hexadecimal string to embed as a watermark in the video stream (e.g., "FFFF").
+                    msg_a (str): A 2-byte hexadecimal string to embed as a watermark in the audio stream (e.g., "FFFF").
+                    progress (gr.Progress, optional): Gradio progress tracker for monitoring embedding progress. Defaults to tracking tqdm.
+
+                Returns:
+                    str: File path to the watermarked output video file.
+                """
                 video_model_nbytes = get_model_nbytes(model_version)
                 _, regex_pattern_v = generate_hex_format_regex(video_model_nbytes)
                 _, regex_pattern_a = generate_hex_format_regex(audio_generator_nbytes)
-                if input_path is None:
+                if file is None:
                     raise gr.Error("No file uploaded", duration=5)
                 if not re.match(regex_pattern_v, msg_v):
                     raise gr.Error(f"Invalid format. Please use like '{format_like_v}'", duration=5)
@@ -696,10 +710,10 @@ with gr.Blocks(title="VideoSeal") as demo:
                 msg_pt_a = generate_msg_pt_by_format_string(msg_a, audio_generator_nbytes)
 
                 if video_only:
-                    output_path = os.path.join(os.path.dirname(input_path), "__".join([msg_v]) + '.mp4')
+                    output_path = os.path.join(os.path.dirname(file), "__".join([msg_v]) + '.mp4')
                 else:
-                    output_path = os.path.join(os.path.dirname(input_path), "__".join([msg_v, msg_a]) + '.mp4')
-                embed_watermark(input_path, model_version, output_path, msg_pt_v, msg_pt_a, video_only, progress)
+                    output_path = os.path.join(os.path.dirname(file), "__".join([msg_v, msg_a]) + '.mp4')
+                embed_watermark(file, model_version, output_path, msg_pt_v, msg_pt_a, video_only, progress)
 
                 return output_path
             embedding_btn.click(
@@ -720,6 +734,18 @@ with gr.Blocks(title="VideoSeal") as demo:
                     predicted_messages = gr.JSON(label="Detected Messages")
 
             def run_detect_watermark(file, model_versions, video_only, progress=gr.Progress(track_tqdm=True)):
+                """
+                Detects a watermark in the given video file using specified model versions.
+
+                Args:
+                    file (str): Path to the input video file.
+                    model_versions (List[str]): List of model version identifiers (e.g., checkpoint versions) to use for detection.
+                    video_only (bool): If True, only the video stream is considered; audio is ignored.
+                    progress (gr.Progress, optional): Gradio Progress tracker for visualizing progress. Defaults to tracking tqdm.
+
+                Returns:
+                    str: A Markdown-formatted string containing the detection results.
+                """
                 if file is None:
                     raise gr.Error("No file uploaded", duration=5)
 
@@ -778,4 +804,4 @@ with gr.Blocks(title="VideoSeal") as demo:
             )
 
 if __name__ == "__main__":
-    demo.launch(server_name="0.0.0.0", server_port=7860)
+    demo.launch(server_name="0.0.0.0", server_port=7860, mcp_server=True, ssr_mode=False)
