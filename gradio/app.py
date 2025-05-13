@@ -6,7 +6,7 @@ import subprocess
 from huggingface_hub import hf_hub_download
 
 REPO_URL = "https://github.com/facebookresearch/videoseal.git"
-REPO_BRANCH = '5897ac50b5b0f5c806f42d2f7d1ef208a0780a28'
+REPO_BRANCH = '3493bd3c39679e6264b4c09dd427ae024246d6b5'
 LOCAL_PATH = "./videoseal"
 
 def install_src():
