@@ -1,7 +1,7 @@
 torch==2.5.1
 gradio[mcp]==5.28.0
 GitPython==3.1.43
-huggingface-hub==0.26.3
+huggingface-hub==0.28.1
 audioseal==0.1.4
 matplotlib==3.10.0
 soundfile==0.12.1
