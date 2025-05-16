@@ -125,7 +125,13 @@ def embed_video(
     width = int(video_info['width'])
     height = int(video_info['height'])
     fps = float(video_info['r_frame_rate'].split('/')[0]) / float(video_info['r_frame_rate'].split('/')[1])
-    num_frames = int(video_info['nb_frames'])
+    num_frames = int(video_info.get('nb_read_frames', 0))
+
+    # fallback using tags
+    if not num_frames and 'DURATION' in video_info.get('tags', {}):
+        h, m, s = video_info['tags']['DURATION'].split(':')
+        duration = int(h) * 3600 + int(m) * 60 + float(s)
+        num_frames = int(duration * fps)
 
     # Open the input video
     process1 = (
@@ -241,7 +247,12 @@ def embed_audio(
     sample_rate = int(audio_info['sample_rate'])
     sample_fmt = audio_info['sample_fmt']
     channels = int(audio_info['channels'])
-    duration = float(audio_info['duration'])
+    duration = float(audio_info.get('duration', 0))
+
+    # fallback using tags
+    if not duration and 'DURATION' in audio_info.get('tags', {}):
+        h, m, s = audio_info['tags']['DURATION'].split(':')
+        duration = int(h) * 3600 + int(m) * 60 + float(s)
 
     # CASE 1 Read audio all at once
 
